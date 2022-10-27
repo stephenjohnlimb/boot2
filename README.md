@@ -1,0 +1,36 @@
+## Simple SpringBoot App with Gradle
+
+### How did this project get created
+
+I used IntelliJ with the `Spring Boot / Spring Initializr project wizard.` plugin.
+
+This means I can just use: `File -> New -> Project` and then use the following dialog to create the project.
+
+#### IntelliJ Spring Initializr dialog
+
+![Spring Initializr dialog](NewProject.png "New Project Dialog")
+
+#### Project Settings
+I didn't really need to do anything to alter this project, other than write these few notes.
+
+### So what now?
+
+Well first you can just use the IntelliJ `Build -> Rebuild Project` or you can use the `Gradle view` to
+trigger builds. Finally, it is also possible to the `Terminal` to issue direct gradle commands.
+
+#### Gradle commands
+I find this approach most useful; because I'm used to CLI in general. You can just the following to test the
+default SpringBoot app context loads: `./gradlew clean test --info`.
+
+This will give you quite a bit of information and also show that you Spring boot app dow run up OK (which it should as it is minimal).
+
+### Pushing to github
+
+So this new project only exists on this laptop at present, so Now I'll export it up to my Github repo.
+Then I can work on it from various computers.
+
+#### How to export a project
+First off you'll need a Github account and have that setup in IntelliJ (or other IDE).
+I use the token mechanism that works well Github and IntelliJ.
+
+See the `VCS -> Share Project on GitHub` option.
