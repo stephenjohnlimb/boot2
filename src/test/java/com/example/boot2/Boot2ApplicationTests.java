@@ -1,20 +1,21 @@
 package com.example.boot2;
 
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
 
 @SpringBootTest
 class Boot2ApplicationTests {
 
-  @Test
-  void justFail() {
-    fail("Just checking");
-  }
+  @Autowired
+  ApplicationContext applicationContext;
 
   @Test
   void contextLoads() {
+    assertNotNull(applicationContext);
   }
 
 }

@@ -24,13 +24,21 @@ default SpringBoot app context loads: `./gradlew clean test --info`.
 
 This will give you quite a bit of information and also show that you Spring boot app dow run up OK (which it should as it is minimal).
 
-### Pushing to github
+### Pushing to GitHub
 
-So this new project only exists on this laptop at present, so Now I'll export it up to my Github repo.
+So this new project only exists on this laptop at present, so Now I'll export it up to my GitHub repo.
 Then I can work on it from various computers.
 
 #### How to export a project
-First off you'll need a Github account and have that setup in IntelliJ (or other IDE).
-I use the token mechanism that works well Github and IntelliJ.
+First off you'll need a GitHub account and have that setup in IntelliJ (or other IDE).
+I use the token mechanism that works well GitHub and IntelliJ.
 
-See the `VCS -> Share Project on GitHub` option.
+See the `VCS -> Share Project on GitHub` option, you will be prompted with a dialog like this below:
+![GitHub Initial Commit dialog](InitialCommit.png "Commit new project to GitHub")
+
+### Profiles and Conditional Beans
+
+See [Profiles and Beans](ProfilesAndBeans.md) on a simple way to conditionally use different beans.
+But note this is really only useful in very simple situations. If you need lots of conditional beans
+for a variety of situations things are going to get complex. You may need to read
+[Avoiding Profiles](https://reflectoring.io/dont-use-spring-profile-annotation/).
