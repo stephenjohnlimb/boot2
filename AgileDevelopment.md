@@ -16,7 +16,7 @@ If it is not acceptable we also want some reasoning as to why. We will only subm
 length greater than 1 and less than 31 characters.
 
 A User Identifier is deemed acceptable if it does not have the letter `X` in it (arbitrary) and must not
-contain any punctuation characters.
+contain any punctuation characters, and it cannot be all blank.
 
 Note I've not added any requirements around logging formats or outputs, nor metric/throughput monitoring.
 These things can be added later as stories, there's little doubt in production they will be needed.
@@ -179,6 +179,166 @@ Now we can work on the next story, that story is the business logic.
 Just to recap the business logic is:
 "A User Identifier is deemed acceptable if it does not have the letter `X` in it (arbitrary) and must not
 contain any punctuation characters."
+
+#### Next story - the 'business validation'
+
+OK, it's a bit simple and basic, but let's wrap this up via an interface and have
+a service implement it. We can then configure a simple test service that just lets everything
+pass and a real production service that does the actual logic.
+
+Obviously here the logic is some simple it does not really matter, but we need to focus on
+design and isolation of these elements being developed.
+
+So here it is the [UserIdentifierValidator.java](src/main/java/com/example/boot2/domain/UserIdentifierValidator.java):
+```
+...
+public interface UserIdentifierValidator {
+
+  Supplier<Status> validate(String userIdentifier);
+}
+```
+
+And here is the test implementation (you could just mock this - but I don't like mocks much):
+[TestUserIdentifierValidator](src/test/java/com/example/boot2/domain/TestUserIdentifierValidator.java),
+note that this is in the `test` part of the project.
+
+```
+...
+@Service
+@ConditionalOnProperty(name = "run.system", havingValue = "stub")
+public class TestUserIdentifierValidator implements UserIdentifierValidator {
+
+  @Override
+  public Supplier<Status> validate(String userIdentifier) {
+    return () -> new Status(true, Optional.empty());
+  }
+}
+```
+
+Again I've used the `@ConditionalOnProperty` and a property called `run.system`, this set up
+via the `application.properties`, `application-dev.properties` and the profile `dev`.
+
+Now I can move on to develop the actual implementation. I'll start off with it all in the
+class `ProductionUserIdentifierValidator`. I'll write some tests, then I'll refactor it
+and check all the tests still pass.
+
+So here are the tests for [ProductionUserIdentifierValidator](src/main/java/com/example/boot2/domain/ProductionUserIdentifierValidator.java):
+```
+...
+class UserIdentifierValidatorTest {
+
+  private UserIdentifierValidator underTest = new ProductionUserIdentifierValidator();
+
+  private Consumer<Supplier<Status>> assertFailsBusinessLogic = supplier -> {
+    var result = supplier.get();
+    assertFalse(result.acceptable());
+    assertTrue(result.reasonUnacceptable().isPresent());
+    assertEquals("Fails Business Logic Check", result.reasonUnacceptable().get());
+  };
+
+  @ParameterizedTest
+  @CsvSource({"Steve", "StephenLimb", "Stephen John Limb"})
+  void testAcceptableContent(String toBeValidated) {
+    var result = underTest.validate(toBeValidated).get();
+    assertTrue(result.acceptable());
+    assertTrue(result.reasonUnacceptable().isEmpty());
+  }
+
+  @ParameterizedTest
+  @CsvSource({"SteveX", "Stephen X Limb"})
+  void testXContent(String toBeValidated) {
+    assertFailsBusinessLogic.accept(underTest.validate(toBeValidated));
+  }
+
+  @ParameterizedTest
+  @CsvSource({"StephenLimb!", "@StephenLimb", "@", "!", "{"})
+  void testPunctuatedContent(String toBeValidated) {
+    assertFailsBusinessLogic.accept(underTest.validate(toBeValidated));
+  }
+
+  @ParameterizedTest
+  @NullSource  // pass a null value
+  @ValueSource(strings = {"", " ", "    "})
+  void testNullAndBlankContent(String toBeValidated) {
+    assertFailsBusinessLogic.accept(underTest.validate(toBeValidated));
+  }
+}
+```
+
+Some of these test pass and some fail, note I've used parameterised tests here.
+Also, note that I've not done any `Spring` stuff or contexts or anything like that.
+
+The use of just pure Junit tests without any Spring is quick and simple - but only if
+you minimise `@Autowiring` and inject dependencies via constructors. This enables you to
+create your own `new` Java objects and use them. This does speed up your tests and keeps them
+less `Spring` (a good thing in my opinion).
+
+#### Next task it to implement the real functionality and get the tests to pass
+
+So here's the initial implementation (needs to be refactored though). But passes all the tests.
+
+[ProductionUserIdentifierValidator](src/main/java/com/example/boot2/domain/ProductionUserIdentifierValidator.java)
+```
+...
+@Service
+@ConditionalOnProperty(name = "run.system", havingValue = "prd")
+public class ProductionUserIdentifierValidator implements UserIdentifierValidator {
+
+  @Override
+  public Supplier<Status> validate(final String userIdentifier) {
+    var valid = isValid(userIdentifier);
+    if(valid) {
+      return () -> new Status(true, Optional.empty());
+    }
+    return () -> new Status(false, Optional.of("Fails Business Logic Check"));
+   }
+
+  private boolean isValid(String userIdentifier) {
+    if(userIdentifier == null || userIdentifier.isBlank()) {
+      return false;
+    }
+    if(userIdentifier.contains("X")) {
+      return false;
+    }
+    if(Pattern.matches("(.*)[\\p{Punct}](.*)", userIdentifier)) {
+      return false;
+    }
+    return true;
+  }
+}
+```
+
+You may ask; "why refactor this?". It's just messy, lets make it more function.
+
+But this is where 'TDD' drives the implementation to be made tighter, but we've got something
+almost working now. We just need to plug the business logic into the controller.
+
+So here it is, now revisited.
+
+```
+@RestController
+@ResponseBody
+@Validated
+public class BasicProcessController {
+
+  private final UserIdentifierValidator userIdentifierValidator;
+
+  private final BiFunction<HttpStatus, Supplier<Status>, ResponseEntity<Status>> response =
+      (statusCode, supplier) -> ResponseEntity.status(statusCode).body(supplier.get());
+
+  public BasicProcessController(UserIdentifierValidator userIdentifierValidator) {
+    this.userIdentifierValidator = userIdentifierValidator;
+  }
+
+  @GetMapping("/status/{userIdentifier}")
+  public ResponseEntity<Status> checkInputValueStatus(
+      @PathVariable("userIdentifier") @Size(min = 2, max = 30) String userIdentifier) {
+    return response.apply(HttpStatus.OK, userIdentifierValidator.validate(userIdentifier));
+  }
+}
+```
+
+
 
 
 

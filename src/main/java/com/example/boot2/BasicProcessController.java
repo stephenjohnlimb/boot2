@@ -1,7 +1,7 @@
 package com.example.boot2;
 
 import com.example.boot2.domain.Status;
-import java.util.Optional;
+import com.example.boot2.domain.UserIdentifierValidator;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import javax.validation.constraints.Size;
@@ -22,15 +22,18 @@ import org.springframework.web.bind.annotation.RestController;
 @Validated
 public class BasicProcessController {
 
-  private final Supplier<Status> acceptable =
-      () -> new Status(true, Optional.empty());
+  private final UserIdentifierValidator userIdentifierValidator;
 
   private final BiFunction<HttpStatus, Supplier<Status>, ResponseEntity<Status>> response =
       (statusCode, supplier) -> ResponseEntity.status(statusCode).body(supplier.get());
 
+  public BasicProcessController(UserIdentifierValidator userIdentifierValidator) {
+    this.userIdentifierValidator = userIdentifierValidator;
+  }
+
   @GetMapping("/status/{userIdentifier}")
   public ResponseEntity<Status> checkInputValueStatus(
       @PathVariable("userIdentifier") @Size(min = 2, max = 30) String userIdentifier) {
-    return response.apply(HttpStatus.OK, acceptable);
+    return response.apply(HttpStatus.OK, userIdentifierValidator.validate(userIdentifier));
   }
 }
