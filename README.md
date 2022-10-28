@@ -42,3 +42,8 @@ See [Profiles and Beans](ProfilesAndBeans.md) on a simple way to conditionally u
 But note this is really only useful in very simple situations. If you need lots of conditional beans
 for a variety of situations things are going to get complex. You may need to read
 [Avoiding Profiles](https://reflectoring.io/dont-use-spring-profile-annotation/).
+
+## On to Actual Development
+
+See [Agile Development](AgileDevelopment.md) for how I'm going to approach adding in functionality to this simple app.
+
