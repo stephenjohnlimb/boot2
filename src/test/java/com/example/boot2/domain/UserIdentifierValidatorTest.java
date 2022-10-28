@@ -13,9 +13,9 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class UserIdentifierValidatorTest {
 
-  private UserIdentifierValidator underTest = new ProductionUserIdentifierValidator();
+  private final UserIdentifierValidator underTest = new ValidatorConfiguration().productionValidator();
 
-  private Consumer<Supplier<Status>> assertFailsBusinessLogic = supplier -> {
+  private final Consumer<Supplier<Status>> assertFailsBusinessLogic = supplier -> {
     var result = supplier.get();
     assertFalse(result.acceptable());
     assertTrue(result.reasonUnacceptable().isPresent());

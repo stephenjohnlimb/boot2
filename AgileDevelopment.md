@@ -76,28 +76,6 @@ user expects (maybe they would like `BAD_REQUEST` rather than `PRECONDITION_FAIL
 
 Obviously - these tests will all fail, we've not implemented a controller yet!
 
-Here is the first implementation of the controller.
-```
-...
-@RestController
-@ResponseBody
-@Validated
-public class BasicProcessController {
-
-  private final Supplier<Status> acceptable =
-      () -> new Status(true, Optional.empty());
-
-  private final BiFunction<HttpStatus, Supplier<Status>, ResponseEntity<Status>> response =
-      (statusCode, supplier) -> ResponseEntity.status(statusCode).body(supplier.get());
-
-  @GetMapping("/status/{userIdentifier}")
-  public ResponseEntity<Status> checkInputValueStatus(
-      @PathVariable("userIdentifier") @Size(min = 2, max = 30) String userIdentifier) {
-    return response.apply(HttpStatus.OK, acceptable);
-  }
-}
-```
-
 I did have to modify the `build.gradle` to include:
 - `implementation 'org.springframework.boot:spring-boot-starter-web'`
 - `implementation 'org.springframework.boot:spring-boot-starter-validation'`
@@ -178,7 +156,7 @@ Now we can work on the next story, that story is the business logic.
 
 Just to recap the business logic is:
 "A User Identifier is deemed acceptable if it does not have the letter `X` in it (arbitrary) and must not
-contain any punctuation characters."
+contain any punctuation characters, and it cannot be all blank."
 
 #### Next story - the 'business validation'
 
@@ -189,7 +167,7 @@ pass and a real production service that does the actual logic.
 Obviously here the logic is some simple it does not really matter, but we need to focus on
 design and isolation of these elements being developed.
 
-So here it is the [UserIdentifierValidator.java](src/main/java/com/example/boot2/domain/UserIdentifierValidator.java):
+So here it is the UserIdentifierValidator:
 ```
 ...
 public interface UserIdentifierValidator {
@@ -199,8 +177,7 @@ public interface UserIdentifierValidator {
 ```
 
 And here is the test implementation (you could just mock this - but I don't like mocks much):
-[TestUserIdentifierValidator](src/test/java/com/example/boot2/domain/TestUserIdentifierValidator.java),
-note that this is in the `test` part of the project.
+TestUserIdentifierValidator, note that this is in the `test` part of the project.
 
 ```
 ...
@@ -222,7 +199,7 @@ Now I can move on to develop the actual implementation. I'll start off with it a
 class `ProductionUserIdentifierValidator`. I'll write some tests, then I'll refactor it
 and check all the tests still pass.
 
-So here are the tests for [ProductionUserIdentifierValidator](src/main/java/com/example/boot2/domain/ProductionUserIdentifierValidator.java):
+So here are the tests for ProductionUserIdentifierValidator:
 ```
 ...
 class UserIdentifierValidatorTest {
@@ -265,7 +242,7 @@ class UserIdentifierValidatorTest {
 }
 ```
 
-Some of these test pass and some fail, note I've used parameterised tests here.
+Some of these test pass and some fail, I've used parameterised tests here.
 Also, note that I've not done any `Spring` stuff or contexts or anything like that.
 
 The use of just pure Junit tests without any Spring is quick and simple - but only if
@@ -277,7 +254,7 @@ less `Spring` (a good thing in my opinion).
 
 So here's the initial implementation (needs to be refactored though). But passes all the tests.
 
-[ProductionUserIdentifierValidator](src/main/java/com/example/boot2/domain/ProductionUserIdentifierValidator.java)
+ProductionUserIdentifierValidator
 ```
 ...
 @Service
@@ -308,7 +285,7 @@ public class ProductionUserIdentifierValidator implements UserIdentifierValidato
 }
 ```
 
-You may ask; "why refactor this?". It's just messy, lets make it more function.
+You may ask; "why refactor this?". It's just messy, lets make it more functional.
 
 But this is where 'TDD' drives the implementation to be made tighter, but we've got something
 almost working now. We just need to plug the business logic into the controller.
@@ -337,6 +314,149 @@ public class BasicProcessController {
   }
 }
 ```
+
+Now that controller uses whatever `UserIdentifierValidator` is available from the Spring context.
+For testing that will just be our basic `TestUserIdentifierValidator` but when we run the application up
+in production (none-test) mode it will use `ProductionUserIdentifierValidator`.
+
+So this is an important point, keep unit tests simple and isolated, keep the Spring controller/application
+stuff just using stubs. You can integrate the whole together later.
+
+#### Refactoring ProductionUserIdentifierValidator
+
+Now I plan to make this more functional and use `Predicates`, but I may get carried away (which is 
+sometimes good and sometimes a waste of time). But let's see where this takes us.
+
+So here's the first go at refactoring in a more functional way.
+```
+@Service
+@ConditionalOnProperty(name = "run.system", havingValue = "prd")
+public class ProductionUserIdentifierValidator implements UserIdentifierValidator {
+
+  private final Predicate<String> hasValue =
+      userIdentifier -> userIdentifier != null && !userIdentifier.isBlank();
+
+  private final Predicate<String> doesNotContainX =
+      userIdentifier -> !userIdentifier.contains("X");
+
+  private final Predicate<String> doesNotContainPunctuation =
+      userIdentifier -> !Pattern.matches("(.*)[\\p{Punct}](.*)", userIdentifier);
+
+  private final Predicate<String> rules =
+      hasValue.and(doesNotContainX).and(doesNotContainPunctuation);
+
+  private final Supplier<Status> valid =
+      () -> new Status(true, Optional.empty());
+
+  private final Supplier<Status> invalid =
+      () -> new Status(false, Optional.of("Fails Business Logic Check"));
+
+  @Override
+  public Supplier<Status> validate(final String userIdentifier) {
+
+    return Optional.ofNullable(userIdentifier)
+        .stream()
+        .filter(rules)
+        .findAny()
+        .map(id -> valid)
+        .orElse(invalid);
+  }
+}
+```
+
+Now this gives me the idea that I could pull those `Predicates` out and use a 
+constructor argument to take a predicate in. This code would then be more `SOLID`
+and only focus on the running of a `Predicate` and mapping to a Status.
+
+This would mean I could use the same validator for both Test and Production use
+but with different rules. See I told you I might get carried away refactoring.
+
+#### The refactoring
+I've removed the `TestUserIdentifierValidator` and the `ProductionUserIdentifierValidator` and
+changed `UserIdentifierValidator` from an interface into a class with all the implementation in.
+
+But I've also added a configuration class (not there's a bit here I don't like, there is
+now some stub code in the main part of the project).
+
+The configuration:
+```
+@Configuration
+public class ValidatorConfiguration {
+
+  @Bean
+  @ConditionalOnProperty(name = "run.system", havingValue = "stub")
+  UserIdentifierValidator stubValidator() {
+    return new UserIdentifierValidator(userIdentifier -> true);
+  }
+
+  @Bean
+  @ConditionalOnProperty(name = "run.system", havingValue = "prd")
+  UserIdentifierValidator productionValidator() {
+
+    final Predicate<String> hasValue =
+        userIdentifier -> userIdentifier != null && !userIdentifier.isBlank();
+
+    final Predicate<String> doesNotContainX =
+        userIdentifier -> !userIdentifier.contains("X");
+
+    final Predicate<String> doesNotContainPunctuation =
+        userIdentifier -> !Pattern.matches("(.*)[\\p{Punct}](.*)", userIdentifier);
+
+    final Predicate<String> rules =
+        hasValue.and(doesNotContainX).and(doesNotContainPunctuation);
+
+    return new UserIdentifierValidator(rules);
+  }
+}
+```
+
+The UserIdentifierValidator class:
+```
+public final class UserIdentifierValidator {
+  private final Predicate<String> acceptableRule;
+
+  private final Supplier<Status> valid =
+      () -> new Status(true, Optional.empty());
+
+  private final Supplier<Status> invalid =
+      () -> new Status(false, Optional.of("Fails Business Logic Check"));
+
+  public UserIdentifierValidator(Predicate<String> acceptableRule) {
+    this.acceptableRule = acceptableRule;
+  }
+
+  public Supplier<Status> validate(final String userIdentifier) {
+
+    return Optional.ofNullable(userIdentifier)
+        .stream()
+        .filter(acceptableRule)
+        .findAny()
+        .map(id -> valid)
+        .orElse(invalid);
+  }
+}
+```
+
+## Summary
+You can argue the refactoring as gone a bit too far, but you can see the progression in agile development.
+At each stage you have something runnable, this activity (including writing this blurb) took a few hours.
+
+The think I like about functional coding and part of Spring, is that now I have a validator that can be configured,
+i.e. it is open for extension but does not need modifying itself. In fact; it is now used in two distinct ways.
+
+The Spring `@Configuration` is also good in the fact it is a 'Stereotype' for 'config', so that's quite explicit.
+
+If you notice, I've done all these refactoring changes, all the tests still pass and importantly I've not had to alter
+the 'Controller' at all.
+
+Also, each `rule` has been defined as a predicate and then 'hooked' together. So people might say write a unit test for each of those.
+
+Now this is where I would argue about the word unit test, some people say it is a test of a class/function.
+
+But if I look at the tests I have and the code coverage I get (100%), I'd say I've catered for all conditions here.
+
+Which brings me to the final point, with Agile and TDD done in the way described here, you develop the smallest amount of
+code and the minimal number of tests needed to meet the requirement.
 
 
 
