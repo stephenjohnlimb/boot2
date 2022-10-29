@@ -1,6 +1,6 @@
 ## An Agile Approach to Development of an Application
 
-Now you may or may not like this approach, but it's one I've found works well.
+You may or may not like this approach, but it's one I've found works quite well.
 
 But I can't tell you how much the development will cost, or when it will be finished!
 
@@ -18,7 +18,7 @@ length greater than 1 and less than 31 characters.
 A User Identifier is deemed acceptable if it does not have the letter `X` in it (arbitrary) and must not
 contain any punctuation characters, and it cannot be all blank.
 
-Note I've not added any requirements around logging formats or outputs, nor metric/throughput monitoring.
+Note, I've not added any requirements around logging formats or outputs, nor metric/throughput monitoring.
 These things can be added later as stories, there's little doubt in production they will be needed.
 But we don't need to think about that yet.
 
@@ -70,9 +70,8 @@ class Boot2ApplicationTests {
   }
 }
 ```
-Note that I've taken the 
-initiative/liberty of defining the appropriate response codes. These are not in any spec, if they are not what the 
-user expects (maybe they would like `BAD_REQUEST` rather than `PRECONDITION_FAILED`) - that's a new story.
+I've taken the initiative/liberty of defining the appropriate response codes.
+These are not in any spec, if they are not what the user expects (maybe they would like `BAD_REQUEST` rather than `PRECONDITION_FAILED`) - that's a new story.
 
 Obviously - these tests will all fail, we've not implemented a controller yet!
 
@@ -119,7 +118,7 @@ public class BasicProcessController {
 
 So that should do it; right? No business logic yet, but in terms of minimal functionality and those preconditions - we're done.
 
-Well, try the tests again and two still fail! This is because the validation using `@Size` causes a `javax.validation.ConstraintViolationException`.
+Try the tests again, and two still fail! This is because the validation using `@Size` causes a `javax.validation.ConstraintViolationException`.
 What we really want is the HTTP code for PRECONDITION_FAILURE here.
 So now we need to work with the Spring framework to add in some `Aspect Programming`. Spring enables us to catch the exception via
 `AOP` and modify the response.
@@ -151,7 +150,7 @@ curl http://localhost:8080/status/s123456789012345678901234567890
 ```
 
 ### The first story is complete on to the next.
-This now meets the needs for the first paragraph.
+This meets the needs for the first paragraph.
 Now we can work on the next story, that story is the business logic.
 
 Just to recap the business logic is:
@@ -195,7 +194,7 @@ public class TestUserIdentifierValidator implements UserIdentifierValidator {
 Again I've used the `@ConditionalOnProperty` and a property called `run.system`, this set up
 via the `application.properties`, `application-dev.properties` and the profile `dev`.
 
-Now I can move on to develop the actual implementation. I'll start off with it all in the
+I can move on to develop the actual implementation. I'll start off with it all in the
 class `ProductionUserIdentifierValidator`. I'll write some tests, then I'll refactor it
 and check all the tests still pass.
 
@@ -243,7 +242,9 @@ class UserIdentifierValidatorTest {
 ```
 
 Some of these test pass and some fail, I've used parameterised tests here.
-Also, note that I've not done any `Spring` stuff or contexts or anything like that.
+Also, I've not done any `Spring` stuff or contexts or anything like that.
+
+I've gathered common test code assertions into a simple consumer - so even the tests are DRY.
 
 The use of just pure Junit tests without any Spring is quick and simple - but only if
 you minimise `@Autowiring` and inject dependencies via constructors. This enables you to
@@ -315,12 +316,13 @@ public class BasicProcessController {
 }
 ```
 
-Now that controller uses whatever `UserIdentifierValidator` is available from the Spring context.
+The controller uses whatever `UserIdentifierValidator` is available from the Spring context.
 For testing that will just be our basic `TestUserIdentifierValidator` but when we run the application up
-in production (none-test) mode it will use `ProductionUserIdentifierValidator`.
+in production (none-test) mode it will use the `ProductionUserIdentifierValidator`.
 
 So this is an important point, keep unit tests simple and isolated, keep the Spring controller/application
-stuff just using stubs. You can integrate the whole together later.
+stuff just using stubs. You can integrate the whole together later. We are really just wanting to test the Spring/Controller
+and the entry into the application (that's all).
 
 #### Refactoring ProductionUserIdentifierValidator
 
@@ -364,7 +366,9 @@ public class ProductionUserIdentifierValidator implements UserIdentifierValidato
 }
 ```
 
-Now this gives me the idea that I could pull those `Predicates` out and use a 
+The 'if statements' and conditional returns have now been redefined as Predicate/Supplier.
+
+This gives me the idea that I could pull those `Predicates` out and use a 
 constructor argument to take a predicate in. This code would then be more `SOLID`
 and only focus on the running of a `Predicate` and mapping to a Status.
 
@@ -375,7 +379,7 @@ but with different rules. See I told you I might get carried away refactoring.
 I've removed the `TestUserIdentifierValidator` and the `ProductionUserIdentifierValidator` and
 changed `UserIdentifierValidator` from an interface into a class with all the implementation in.
 
-But I've also added a configuration class (not there's a bit here I don't like, there is
+But I've also added a configuration class (now there's a bit here I don't like, there is
 now some stub code in the main part of the project).
 
 The configuration:
@@ -441,7 +445,12 @@ public final class UserIdentifierValidator {
 You can argue the refactoring as gone a bit too far, but you can see the progression in agile development.
 At each stage you have something runnable, this activity (including writing this blurb) took a few hours.
 
-The think I like about functional coding and part of Spring, is that now I have a validator that can be configured,
+I have separated out all the concerns here, the `UserIdentifierValidator` just runs a `Predicate` and delegates
+the mapping of the result to one of two `Suppliers`.
+
+The `ValidatorConfiguration` is only concerned with creating the right configuration of the `UserIdentifierValidator`.
+
+The thing I like about functional coding and part of Spring, is that now I have a validator that can be configured,
 i.e. it is open for extension but does not need modifying itself. In fact; it is now used in two distinct ways.
 
 The Spring `@Configuration` is also good in the fact it is a 'Stereotype' for 'config', so that's quite explicit.
@@ -450,13 +459,18 @@ If you notice, I've done all these refactoring changes, all the tests still pass
 the 'Controller' at all.
 
 Also, each `rule` has been defined as a predicate and then 'hooked' together. So people might say write a unit test for each of those.
+This is where I would argue about the word unit test, some people say it is a test of a class/function.
+I'd say it is a unit of functionality.
 
-Now this is where I would argue about the word unit test, some people say it is a test of a class/function.
-
-But if I look at the tests I have and the code coverage I get (100%), I'd say I've catered for all conditions here.
+But if I look at the tests I have and the code coverage; I get (100%), I'd say I've catered for all conditions here.
 
 Which brings me to the final point, with Agile and TDD done in the way described here, you develop the smallest amount of
 code and the minimal number of tests needed to meet the requirement.
+
+Indeed, it was not necessary to refactor and make it more functional, the tests passed and the functionality worked.
+But I'd argue it's worth it in the long run, adding a new rule is easy, adding a different configuration based on a property is also easy.
+There are no mocks involved, with Java `Functions` it much easier to just plugin a simpe function if
+the classes defined can be constructed with dependencies being passed in.
 
 
 
