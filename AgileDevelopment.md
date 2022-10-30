@@ -7,7 +7,8 @@ But I can't tell you how much the development will cost, or when it will be fini
 But I can tell you, you get value very early on; and you can say 'stop' when you feel
 you have enough functionality.
 
-Importantly quality is not sacrificed.
+Importantly quality is not sacrificed. Also, things that can be done in parallel by different tram members
+can be progressed.
 
 ### So lets outline the broad requirement
 
@@ -16,25 +17,38 @@ If it is not acceptable we also want some reasoning as to why. We will only subm
 length greater than 1 and less than 31 characters.
 
 A User Identifier is deemed acceptable if it does not have the letter `X` in it (arbitrary) and must not
-contain any punctuation characters, and it cannot be all blank.
+contain any punctuation characters, and is not blank (i.e just spaces).
 
-Note, I've not added any requirements around logging formats or outputs, nor metric/throughput monitoring.
-These things can be added later as stories, there's little doubt in production they will be needed.
+The application must be deployable into a Kubernetes cluster.
+
+Note, I've not added any requirements around performance, logging formats or outputs, nor metric/throughput monitoring.
+These things can be added later; as stories There's little doubt in production they will be needed.
 But we don't need to think about that yet.
 
-Don't slip into 'waterfall mode'. But you can't ask "when will 'it' all be finished". If you can't
-afford logging and monitoring or are willing to 'risk it' hey that's your choice - I wouldn't - but you might.
+Don't slip into 'waterfall mode'. This requirement (while minimal) is sufficient to get going with. Now take
+end-user/client/QA/DevOps 'feedback' (sometimes criticism) in a positive manner!
 
-### Where to start?
+It just means they have more stories for you to implement, there's a temptation to 'feel' this is in someway
+a personal attack on your inability to read their minds. Put that to one side, take a deep breath and go for a walk.
+
+So this is initially just three stories:
+- The basic application that controls size of incoming user-identifiers (story 1)
+- The actual business logic around what qualifies as an acceptable identifier (story 2)
+- The packaging and deployment into a Kubernetes cluster (story 3)
+
+If we have a 'team'; all of these stories can start at the same time and be progressed. The team would just
+split that work up and coordinate between themselves - pair and mob programming/testing as they go.
+
+### Where to start on the basic application?
 
 Well lets write a test first, this won't be the full and only test, but it's the bare minimum before we can
-implement anything or deploy anything.
+implement anything or deploy anything anywhere.
 
-So the first `story` just deals with the first paragraph (i.e. basic preconditions and no business logic.)
+So `story 1` just deals with the first paragraph (i.e. basic preconditions and no business logic.)
 
-#### Write a basic test first
+#### Writing the first basic test
 
-See [The Spring Boot Test](src/test/java/com/example/boot2/Boot2ApplicationTests.java).
+See [The Spring Boot Test](src/test/java/com/example/boot2/Boot2ApplicationTests.java), here's the core of it below.
 ```
 ...
 @SpringBootTest
@@ -70,8 +84,11 @@ class Boot2ApplicationTests {
   }
 }
 ```
-I've taken the initiative/liberty of defining the appropriate response codes.
+I've taken the initiative/liberty of defining the URl `context` as **'/status'** and some appropriate response codes.
 These are not in any spec, if they are not what the user expects (maybe they would like `BAD_REQUEST` rather than `PRECONDITION_FAILED`) - that's a new story.
+
+Don't get bogged down asking anyone about this, just crack on. Those in the team that have a strong opinion can all argue about it
+between themselves for a few days, do not become paralysed or slowed down - just keep driving forward.
 
 Obviously - these tests will all fail, we've not implemented a controller yet!
 
@@ -83,7 +100,7 @@ These are needed for the validation and also the `@AutoConfigureMockMvc` used in
 
 #### Now lets just do the bare minimum to get those test to pass
 
-To do this I've added a simple `domain` class (actually a record).
+To do this, I've added a simple `domain` class (actually a record).
 [Status.java](src/main/java/com/example/boot2/domain/Status.java) as below:
 ```
 package com.example.boot2.domain;
@@ -118,7 +135,8 @@ public class BasicProcessController {
 
 So that should do it; right? No business logic yet, but in terms of minimal functionality and those preconditions - we're done.
 
-Try the tests again, and two still fail! This is because the validation using `@Size` causes a `javax.validation.ConstraintViolationException`.
+Try the tests again, two still fail! This is because the validation using `@Size` causes a `javax.validation.ConstraintViolationException`.
+
 What we really want is the HTTP code for PRECONDITION_FAILURE here.
 So now we need to work with the Spring framework to add in some `Aspect Programming`. Spring enables us to catch the exception via
 `AOP` and modify the response.
@@ -149,24 +167,31 @@ curl http://localhost:8080/status/s123456789012345678901234567890
 {"acceptable":false,"reasonUnacceptable":"checkInputValueStatus.userIdentifier: size must be between 2 and 30"}
 ```
 
-### The first story is complete on to the next.
+Here's the important part, this application can now be deployed (if part of the team was working on `story 3`).
+The application will respond with everything is acceptable, but it allows QA and clients of the service to start integrating their services.
+
+See later for the `helm` stuff.
+
+So QA can start writing and testing their full set of tests for the 'happy path' and also
+get lots of failing tests ready with a real service running.
+
+#### `Story 1` is complete on to the next.
 This meets the needs for the first paragraph.
-Now we can work on the next story, that story is the business logic.
+We can work on the next story, that story is the business logic. If we had a team that could be done concurrently.
 
 Just to recap the business logic is:
 "A User Identifier is deemed acceptable if it does not have the letter `X` in it (arbitrary) and must not
-contain any punctuation characters, and it cannot be all blank."
+contain any punctuation characters, and is not blank (i.e just spaces)."
 
-#### Next story - the 'business validation'
+#### `Story 2` - the 'business validation'
 
 OK, it's a bit simple and basic, but let's wrap this up via an interface and have
 a service implement it. We can then configure a simple test service that just lets everything
 pass and a real production service that does the actual logic.
 
-Obviously here the logic is some simple it does not really matter, but we need to focus on
-design and isolation of these elements being developed.
+Obviously; the logic is so simple, but we need to focus on design and isolation of these elements being developed.
 
-So here it is the UserIdentifierValidator:
+Here is the UserIdentifierValidator (interface):
 ```
 ...
 public interface UserIdentifierValidator {
@@ -175,8 +200,8 @@ public interface UserIdentifierValidator {
 }
 ```
 
-And here is the test implementation (you could just mock this - but I don't like mocks much):
-TestUserIdentifierValidator, note that this is in the `test` part of the project.
+Here is the test implementation (you could just mock this - but I don't like mocks much):
+TestUserIdentifierValidator, note that this is in the `test` part of the project. But I'll revisit this later.
 
 ```
 ...
@@ -191,7 +216,7 @@ public class TestUserIdentifierValidator implements UserIdentifierValidator {
 }
 ```
 
-Again I've used the `@ConditionalOnProperty` and a property called `run.system`, this set up
+I've used the `@ConditionalOnProperty` and a property called `run.system`, this set up
 via the `application.properties`, `application-dev.properties` and the profile `dev`.
 
 I can move on to develop the actual implementation. I'll start off with it all in the
@@ -242,20 +267,25 @@ class UserIdentifierValidatorTest {
 ```
 
 Some of these test pass and some fail, I've used parameterised tests here.
-Also, I've not done any `Spring` stuff or contexts or anything like that.
+Also, I've not used any `Spring` stuff or contexts or anything like that.
 
-I've gathered common test code assertions into a simple consumer - so even the tests are DRY.
+I've gathered common test code assertions into a simple `Consumer` - so even the tests are DRY.
+Remember even test code needs maintenance and design. You should view test cases more as an example of how to
+use the software you're developing.
 
 The use of just pure Junit tests without any Spring is quick and simple - but only if
 you minimise `@Autowiring` and inject dependencies via constructors. This enables you to
 create your own `new` Java objects and use them. This does speed up your tests and keeps them
-less `Spring` (a good thing in my opinion).
+less `Spring` (a good thing in my opinion). Running big complex `Spring context` with all that reflection code
+with lots of tests will really slow your test runs down.
 
 #### Next task it to implement the real functionality and get the tests to pass
 
 So here's the initial implementation (needs to be refactored though). But passes all the tests.
 
-ProductionUserIdentifierValidator
+In fact, they didn't pass first time. I got the regular expression with `\\p{Punct}` in wrong. But my
+tests detected that!
+
 ```
 ...
 @Service
@@ -291,7 +321,7 @@ You may ask; "why refactor this?". It's just messy, lets make it more functional
 But this is where 'TDD' drives the implementation to be made tighter, but we've got something
 almost working now. We just need to plug the business logic into the controller.
 
-So here it is, now revisited.
+So here is that controller, now revisited.
 
 ```
 @RestController
@@ -323,6 +353,15 @@ in production (none-test) mode it will use the `ProductionUserIdentifierValidato
 So this is an important point, keep unit tests simple and isolated, keep the Spring controller/application
 stuff just using stubs. You can integrate the whole together later. We are really just wanting to test the Spring/Controller
 and the entry into the application (that's all).
+
+If we run up our SpringBoot application via our IDE, we can check it all works.
+```
+curl http://localhost:8080/status/!Check!
+
+# I get this response
+
+{"acceptable":false,"reasonUnacceptable":"Fails Business Logic Check"}
+```
 
 #### Refactoring ProductionUserIdentifierValidator
 
@@ -368,6 +407,10 @@ public class ProductionUserIdentifierValidator implements UserIdentifierValidato
 
 The 'if statements' and conditional returns have now been redefined as Predicate/Supplier.
 
+Some people may say that the text `"Fails Business Logic Check"` and rule `"(.*)[\\p{Punct}](.*)"` should
+be pulled out to static constants, or maybe pulled in from `property files`. There's currently no need for this,
+they are well-defined in the context of the `Predicate` and `Supplier`.
+
 This gives me the idea that I could pull those `Predicates` out and use a 
 constructor argument to take a predicate in. This code would then be more `SOLID`
 and only focus on the running of a `Predicate` and mapping to a Status.
@@ -375,9 +418,9 @@ and only focus on the running of a `Predicate` and mapping to a Status.
 This would mean I could use the same validator for both Test and Production use
 but with different rules. See I told you I might get carried away refactoring.
 
-#### The refactoring
+#### The second refactoring
 I've removed the `TestUserIdentifierValidator` and the `ProductionUserIdentifierValidator` and
-changed `UserIdentifierValidator` from an interface into a class with all the implementation in.
+changed `UserIdentifierValidator` from an **interface** in to a **class** with all the implementation in.
 
 But I've also added a configuration class (now there's a bit here I don't like, there is
 now some stub code in the main part of the project).
@@ -442,11 +485,12 @@ public final class UserIdentifierValidator {
 ```
 
 ## Summary
-You can argue the refactoring as gone a bit too far, but you can see the progression in agile development.
+You can argue the refactoring as gone a bit too far (or not far enough!), but you can see the progression in agile development.
 At each stage you have something runnable, this activity (including writing this blurb) took a few hours.
 
-I have separated out all the concerns here, the `UserIdentifierValidator` just runs a `Predicate` and delegates
-the mapping of the result to one of two `Suppliers`.
+I have separated out all the logic concerns here, the `UserIdentifierValidator` just runs a `Predicate` and delegates
+the mapping of the result to one of two `Suppliers`
+(even these could have been passed in - if we really wanted to separate those concerns even more).
 
 The `ValidatorConfiguration` is only concerned with creating the right configuration of the `UserIdentifierValidator`.
 
@@ -455,22 +499,34 @@ i.e. it is open for extension but does not need modifying itself. In fact; it is
 
 The Spring `@Configuration` is also good in the fact it is a 'Stereotype' for 'config', so that's quite explicit.
 
-If you notice, I've done all these refactoring changes, all the tests still pass and importantly I've not had to alter
+If you notice, I've done all these refactoring changes, all the tests still pass, and importantly I've not had to alter
 the 'Controller' at all.
 
-Also, each `rule` has been defined as a predicate and then 'hooked' together. So people might say write a unit test for each of those.
+Also, each `rule` has been defined as a `Predicate` and then 'hooked' together. So people might say write a unit test for each of those.
 This is where I would argue about the word unit test, some people say it is a test of a class/function.
 I'd say it is a unit of functionality.
 
-But if I look at the tests I have and the code coverage; I get (100%), I'd say I've catered for all conditions here.
+But if I look at the tests I have, and the code coverage; I get (100%). I'd say I've catered for all conditions here.
 
 Which brings me to the final point, with Agile and TDD done in the way described here, you develop the smallest amount of
 code and the minimal number of tests needed to meet the requirement.
 
 Indeed, it was not necessary to refactor and make it more functional, the tests passed and the functionality worked.
 But I'd argue it's worth it in the long run, adding a new rule is easy, adding a different configuration based on a property is also easy.
-There are no mocks involved, with Java `Functions` it much easier to just plugin a simpe function if
+There are no mocks involved, with Java `Functions` it much easier to just plug in a simple function if
 the classes defined can be constructed with dependencies being passed in.
+
+I'm now in two minds about separating the `valid` and `invalid` `Suppliers` and pull those into the configuration.
+I might discuss this with a team members and see what they think. Doing this would also feel more consistent and
+symmetric.
+
+## `Story 3` Packaging and Deployment into Kubernetes
+
+I've created a separate [page on docker and helm](Dockerizing.md); it shows what additional
+non-functional changes are needed to take this application and deploy it as a container in a pod in
+Kubernetes.
+
+But we do have a SpringBoot Application that meets the basic needs, we just need to package it now.
 
 
 

@@ -56,8 +56,8 @@ public interface ExternalSystem {
 ```
 
 This is just a signature/abstraction of the 'contract' our application will have with such a remote system.
-We can provide two implementation of this interface. The first is our development test implementation,
-the second would be the real production implementation we'd really want to use.
+We can provide two implementations of this interface. The first is our development test implementation,
+the second would be the real production implementation we'd really want to use in main operation.
 
 [Test Implementation](src/test/java/com/example/boot2/TestExternalSystem.java)
 ```
@@ -202,9 +202,9 @@ external.system=stub
 Well in short, lots of options and implicit stuff being picked up (but that's frameworks).
 
 All I can say is:
-- Reduce optionality as much as possible - few paths is better
+- Reduce optionality as much as possible - fewer paths is better
 - While we don't have @Profile and 'magic' profile names everywhere, we do have complexity
 - Make sure the number an amount of variation and indirection is worth it
 - Keep stuff small and as simple as possible
 - By using `@ConditionalOnProperty` we have added two 'magic' names, the "property" and the "value"
-- Which every option you go for, make sure it is consistent, documented and everyone in the team knows
+- Which ever option you go for, make sure it is consistent, documented and everyone in the team knows

@@ -1,22 +1,41 @@
 plugins {
     id 'org.springframework.boot' version '2.7.5'
+    id 'com.google.cloud.tools.jib' version '3.3.1'
     id 'io.spring.dependency-management' version '1.0.15.RELEASE'
     id 'java'
 }
 
 group = 'com.example'
-version = '0.0.1-SNAPSHOT'
-sourceCompatibility = '17'
+version = '1.0.3'
 
 repositories {
     mavenCentral()
 }
 
+ext {
+    //Default of where we will push the resulting jib generated docker image.
+    targetDockerRepository = "192.168.64.2:32000"
+}
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+jib {
+    allowInsecureRegistries = true
+    from {
+        image = 'openjdk:17-jdk-alpine'
+    }
+
+    to {
+        //Double quotes important here like bash shell, single quotes are literal
+        //but double quotes allow variable expansion.
+        image = "${targetDockerRepository}/${rootProject.name}:${version}"
+    }
 }
 
 tasks.named('test') {

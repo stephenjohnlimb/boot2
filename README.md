@@ -1,4 +1,9 @@
-## Simple SpringBoot App with Gradle
+## A SpringBoot App with Gradle deployed in Kubernetes
+
+This covers, the creation of a SpringBoot app, using gradle as the build mechanism,
+then finally deploying it via a helm Chart into a Kubernetes environment (microk8s).
+
+I also cover an Agile approach on how to do the above.
 
 ### How did this project get created
 
@@ -18,12 +23,14 @@ I didn't really need to do anything to alter this project, other than write thes
 Well first you can just use the IntelliJ `Build -> Rebuild Project` or you can use the `Gradle view` to
 trigger builds. Finally, it is also possible to use the `Terminal` to issue direct gradle commands.
 
-#### Gradle commands
+#### Gradle commands via terminal
 I find this approach most useful; because I'm used to CLI in general. You can just the following to test the
 default SpringBoot app context loads: `./gradlew clean test --info`.
 
 This will give you quite a bit of information and also show that you Spring boot app runs up OK (which it should as it is minimal).
 
+So, I suppose this brings me to the first 'talking point', everytime I make any changes I like to ensure the whole solution
+still runs OK (even though there is no functionality yet). I don't tend to spend lots of time developing without running and testing. 
 ### Pushing to GitHub
 
 So this new project only exists on this laptop at present, so now I'll export it up to my GitHub repo.
@@ -47,5 +54,6 @@ relating to just using profiles.
 
 ## On to Actual Development
 
-See [Agile Development](AgileDevelopment.md) for how I'm going to approach adding in functionality to this simple app.
+See [Agile Development](AgileDevelopment.md) for how I'm going to approach adding in functionality
+to this simple app. This also covers how to wrap it for deployment into a Kubernetes environment. 
 
