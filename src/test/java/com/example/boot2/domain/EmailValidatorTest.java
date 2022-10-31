@@ -13,40 +13,48 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 //Suppressed because sonarlint can't work out this consumer is doing the assertions.
 @SuppressWarnings("java:S2699")
-class UserIdentifierValidatorTest {
+class EmailValidatorTest {
 
-  private final UserIdentifierValidator underTest = new ValidatorConfiguration().productionUserIdentifierValidator();
+  private final EmailValidator underTest = new ValidatorConfiguration().productionEmailAddressValidator();
 
   private final Consumer<Supplier<Status>> assertFailsBusinessLogic = supplier -> {
     var result = supplier.get();
     assertFalse(result.acceptable());
     assertTrue(result.reasonUnacceptable().isPresent());
-    assertEquals("Fails Business Logic Check", result.reasonUnacceptable().get());
+    assertEquals("Fails Email Validation Check", result.reasonUnacceptable().get());
   };
 
   @ParameterizedTest
-  @CsvSource({"Steve", "StephenLimb", "Stephen John Limb"})
-  void testAcceptableContent(String toBeValidated) {
+  @CsvSource({"abc-d@mail.com", "abc.def@mail.com", "abc@mail.com", "abc_def@mail.com"})
+  void testValidEmailPrefix(String toBeValidated) {
     var result = underTest.apply(toBeValidated).get();
     assertTrue(result.acceptable());
     assertTrue(result.reasonUnacceptable().isEmpty());
   }
 
   @ParameterizedTest
-  @CsvSource({"SteveX", "Stephen X Limb"})
-  void testXContent(String toBeValidated) {
+  @CsvSource({"abc.def@mail.cc", "abc.def@mail-archive.com", "abc.def@mail.org", "abc.def@mail.com"})
+  void testValidEmailDomain(String toBeValidated) {
+    var result = underTest.apply(toBeValidated).get();
+    assertTrue(result.acceptable());
+    assertTrue(result.reasonUnacceptable().isEmpty());
+  }
+
+  @ParameterizedTest
+  @CsvSource({"abc-@mail.com", "abc..def@mail.com", ".abc@mail.com", "abc#def@mail.com", "@mail.com"})
+  void testInvalidEmailPrefix(String toBeValidated) {
     assertFailsBusinessLogic.accept(underTest.apply(toBeValidated));
   }
 
   @ParameterizedTest
-  @CsvSource({"StephenLimb!", "@StephenLimb", "@", "!", "{"})
-  void testPunctuatedContent(String toBeValidated) {
+  @CsvSource({"abc.def@mail.c", "abc.def@mail#archive.com", "abc.def@mail", "abc.def@mail..com", "abc.def@"})
+  void testInvalidEmailDomain(String toBeValidated) {
     assertFailsBusinessLogic.accept(underTest.apply(toBeValidated));
   }
 
   @ParameterizedTest
   @NullSource  // pass a null value
-  @ValueSource(strings = {"", " ", "    "})
+  @ValueSource(strings = {"", " ", "    ", "@", " @ ", "   @   "})
   void testNullAndBlankContent(String toBeValidated) {
     assertFailsBusinessLogic.accept(underTest.apply(toBeValidated));
   }

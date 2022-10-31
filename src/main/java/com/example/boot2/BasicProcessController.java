@@ -5,6 +5,8 @@ import com.example.boot2.domain.UserIdentifierValidator;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import javax.validation.constraints.Size;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -22,6 +24,8 @@ import org.springframework.web.bind.annotation.RestController;
 @Validated
 public class BasicProcessController {
 
+  private final Logger logger = LoggerFactory.getLogger(BasicProcessController.class);
+
   private final UserIdentifierValidator userIdentifierValidator;
 
   private final BiFunction<HttpStatus, Supplier<Status>, ResponseEntity<Status>> response =
@@ -34,6 +38,7 @@ public class BasicProcessController {
   @GetMapping("/status/{userIdentifier}")
   public ResponseEntity<Status> checkInputValueStatus(
       @PathVariable("userIdentifier") @Size(min = 2, max = 30) String userIdentifier) {
-    return response.apply(HttpStatus.OK, userIdentifierValidator.validate(userIdentifier));
+    logger.info("Checking status of {}", userIdentifier);
+    return response.apply(HttpStatus.OK, userIdentifierValidator.apply(userIdentifier));
   }
 }

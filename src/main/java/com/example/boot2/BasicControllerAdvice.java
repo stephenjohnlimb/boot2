@@ -20,7 +20,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
  * to something more useful like a 400 - but include the error message as to why we have rejected
  * the incoming request.
  */
-@ControllerAdvice(basePackageClasses = BasicProcessController.class)
+@ControllerAdvice
 public class BasicControllerAdvice extends ResponseEntityExceptionHandler {
 
   /**

@@ -12,14 +12,14 @@ can be progressed.
 
 ### So lets outline the broad requirement
 
-We need an application that can accept a user identifier and tell us if that user identifier is acceptable.
+>We need an application that can accept a user identifier and tell us if that user identifier is acceptable.
 If it is not acceptable we also want some reasoning as to why. We will only submit user identifier values of
 length greater than 1 and less than 31 characters.
 
-A User Identifier is deemed acceptable if it does not have the letter `X` in it (arbitrary) and must not
+>A User Identifier is deemed acceptable if it does not have the letter `X` in it (arbitrary) and must not
 contain any punctuation characters, and is not blank (i.e just spaces).
 
-The application must be deployable into a Kubernetes cluster.
+>The application must be deployable into a Kubernetes cluster.
 
 Note, I've not added any requirements around performance, logging formats or outputs, nor metric/throughput monitoring.
 These things can be added later; as stories There's little doubt in production they will be needed.
@@ -143,7 +143,7 @@ So now we need to work with the Spring framework to add in some `Aspect Programm
 
 ```
 ...
-@ControllerAdvice(basePackageClasses = BasicProcessController.class)
+@ControllerAdvice
 public class BasicControllerAdvice extends ResponseEntityExceptionHandler {
 
   @ResponseBody
@@ -180,8 +180,8 @@ This meets the needs for the first paragraph.
 We can work on the next story, that story is the business logic. If we had a team that could be done concurrently.
 
 Just to recap the business logic is:
-"A User Identifier is deemed acceptable if it does not have the letter `X` in it (arbitrary) and must not
-contain any punctuation characters, and is not blank (i.e just spaces)."
+>A User Identifier is deemed acceptable if it does not have the letter `X` in it (arbitrary) and must not
+contain any punctuation characters, and is not blank (i.e just spaces).
 
 #### `Story 2` - the 'business validation'
 

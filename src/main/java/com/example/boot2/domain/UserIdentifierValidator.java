@@ -1,35 +1,21 @@
 package com.example.boot2.domain;
 
-import java.util.Optional;
-import java.util.function.Predicate;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * Models the validator for checking user identifiers.
+ * User Identifier Validator that delegates to a Value Validator.
  */
-public final class UserIdentifierValidator {
-  private final Predicate<String> acceptableRule;
+public final class UserIdentifierValidator implements Function<String, Supplier<Status>> {
 
-  private final Supplier<Status> valid =
-      () -> new Status(true, Optional.empty());
+  private final ValueValidator delegateValidator;
 
-  private final Supplier<Status> invalid =
-      () -> new Status(false, Optional.of("Fails Business Logic Check"));
-
-  public UserIdentifierValidator(Predicate<String> acceptableRule) {
-    this.acceptableRule = acceptableRule;
+  public UserIdentifierValidator(final ValueValidator validator) {
+    this.delegateValidator = validator;
   }
 
-  /**
-   * Validate the userIdentifier supplied using the configured rules.
-   */
-  public Supplier<Status> validate(final String userIdentifier) {
-
-    return Optional.ofNullable(userIdentifier)
-        .stream()
-        .filter(acceptableRule)
-        .findAny()
-        .map(id -> valid)
-        .orElse(invalid);
+  @Override
+  public Supplier<Status> apply(String userIdentifierValue) {
+    return delegateValidator.validate(userIdentifierValue);
   }
 }

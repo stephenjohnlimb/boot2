@@ -57,3 +57,12 @@ relating to just using profiles.
 See [Agile Development](AgileDevelopment.md) for how I'm going to approach adding in functionality
 to this simple app. This also covers how to wrap it for deployment into a Kubernetes environment. 
 
+The link above also covers [making the SpringBoot app deployable](Dockerizing.md).
+
+I decided that I would add more functionality to this existing Microservice to demonstrate how additional
+services can be included - again in an Agile way.
+
+See [Adding Email Validation](AgileEmailValidationDevelopment.md) for the changes that are made.
+
+## Summary
+...
