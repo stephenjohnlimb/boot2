@@ -54,15 +54,30 @@ relating to just using profiles.
 
 ## On to Actual Development
 
+### Initial basic development
 See [Agile Development](AgileDevelopment.md) for how I'm going to approach adding in functionality
 to this simple app. This also covers how to wrap it for deployment into a Kubernetes environment. 
 
+### Making the application deployable
 The link above also covers [making the SpringBoot app deployable](Dockerizing.md).
 
+### Adding in more functionality
 I decided that I would add more functionality to this existing Microservice to demonstrate how additional
 services can be included - again in an Agile way.
 
 See [Adding Email Validation](AgileEmailValidationDevelopment.md) for the changes that are made.
 
+### Another new requirement
+This requirement is to ensure the microservices have some form of external documentation (swagger/OpenAPI).
+See [Adding Swagger/OPEN API Documentation](AgileOpenAPIDevelopment.md) for the changes need to be made to meet this new requirement.
+
 ## Summary
-...
+Hopefully from this little project, you can see that actually adopting an 'Agile' and incremental approach
+to development can actually work.
+
+As I said at the top of this page, I can't tell you when it will all be finished. Because in reality
+software is never really finished, there's always more that can be added/updated/improved.
+
+Unfortunately, the people with the money and finite timelines - never really get this (I don't think they ever will).
+
+Don't get frustrated by this - just drive forward with development. 
