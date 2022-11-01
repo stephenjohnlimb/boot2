@@ -1,5 +1,6 @@
 package com.example.boot2;
 
+import com.example.boot2.domain.Delay;
 import com.example.boot2.domain.Status;
 import com.example.boot2.domain.UserIdentifierValidator;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,6 +34,8 @@ public class BasicProcessController {
   private final BiFunction<HttpStatus, Supplier<Status>, ResponseEntity<Status>> response =
       (statusCode, supplier) -> ResponseEntity.status(statusCode).body(supplier.get());
 
+  private final Delay delay = new Delay();
+
   public BasicProcessController(UserIdentifierValidator userIdentifierValidator) {
     this.userIdentifierValidator = userIdentifierValidator;
   }
@@ -47,6 +50,6 @@ public class BasicProcessController {
       @PathVariable("userIdentifier") @Size(min = 2, max = 30) String userIdentifier) {
 
     logger.info("Checking status of {}", userIdentifier);
-    return response.apply(HttpStatus.OK, userIdentifierValidator.apply(userIdentifier));
+    return response.apply(HttpStatus.OK, delay.apply(userIdentifier, userIdentifierValidator));
   }
 }

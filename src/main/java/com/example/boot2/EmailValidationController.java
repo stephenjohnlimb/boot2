@@ -1,5 +1,6 @@
 package com.example.boot2;
 
+import com.example.boot2.domain.Delay;
 import com.example.boot2.domain.EmailValidator;
 import com.example.boot2.domain.Status;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,6 +34,8 @@ public class EmailValidationController {
   private final BiFunction<HttpStatus, Supplier<Status>, ResponseEntity<Status>> response =
       (statusCode, supplier) -> ResponseEntity.status(statusCode).body(supplier.get());
 
+  private final Delay delay = new Delay();
+
   public EmailValidationController(EmailValidator emailValidator) {
     this.emailValidator = emailValidator;
   }
@@ -47,6 +50,6 @@ public class EmailValidationController {
       @PathVariable("emailAddress") @NotBlank String emailAddress) {
 
     logger.info("Checking email validity of {}", emailAddress);
-    return response.apply(HttpStatus.OK, emailValidator.apply(emailAddress));
+    return response.apply(HttpStatus.OK, delay.apply(emailAddress, emailValidator));
   }
 }
