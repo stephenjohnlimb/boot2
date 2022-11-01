@@ -2,6 +2,8 @@ package com.example.boot2;
 
 import com.example.boot2.domain.Status;
 import com.example.boot2.domain.UserIdentifierValidator;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import javax.validation.constraints.Size;
@@ -35,9 +37,15 @@ public class BasicProcessController {
     this.userIdentifierValidator = userIdentifierValidator;
   }
 
+  /**
+   * Status checks.
+   */
+  @Operation(summary = "Check the status of the 'user identifier' supplied")
   @GetMapping("/status/{userIdentifier}")
   public ResponseEntity<Status> checkInputValueStatus(
+      @Parameter(description = "The 'user identifier' to be checked")
       @PathVariable("userIdentifier") @Size(min = 2, max = 30) String userIdentifier) {
+
     logger.info("Checking status of {}", userIdentifier);
     return response.apply(HttpStatus.OK, userIdentifierValidator.apply(userIdentifier));
   }

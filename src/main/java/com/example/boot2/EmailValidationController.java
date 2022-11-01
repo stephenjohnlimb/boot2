@@ -2,6 +2,8 @@ package com.example.boot2;
 
 import com.example.boot2.domain.EmailValidator;
 import com.example.boot2.domain.Status;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import javax.validation.constraints.NotBlank;
@@ -35,9 +37,15 @@ public class EmailValidationController {
     this.emailValidator = emailValidator;
   }
 
+  /**
+   * Email address structure validity checks.
+   */
+  @Operation(summary = "Check the validity of the 'email address' supplied")
   @GetMapping("/email/{emailAddress}")
   public ResponseEntity<Status> checkEmailAddress(
+      @Parameter(description = "The 'email address' to be checked")
       @PathVariable("emailAddress") @NotBlank String emailAddress) {
+
     logger.info("Checking email validity of {}", emailAddress);
     return response.apply(HttpStatus.OK, emailValidator.apply(emailAddress));
   }

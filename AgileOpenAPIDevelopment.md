@@ -236,3 +236,154 @@ worthwhile.
 
 How long this take upto this point? About an hour - including making tea and writing these pages.
 
+### Improving the documentation
+If you recall in `BasicControllerAdvice` we handled the `ConstraintViolationException` which is
+throws when JSR303 validation fails. We responded with a `412` precondition failure.
+
+#### The 'Advice'
+
+But the documentation does not currently show this. If we now augment `BasicControllerAdvice` as follows:
+```
+@ControllerAdvice
+public class BasicControllerAdvice extends ResponseEntityExceptionHandler {
+
+  /**
+   * Deals with an exception when any of the methods on BasicProcessController are called.
+   */
+  @ResponseBody
+  @ExceptionHandler(ConstraintViolationException.class)
+  @ResponseStatus(HttpStatus.PRECONDITION_FAILED)
+  public ResponseEntity<Status> handlerControllerException(HttpServletRequest request,
+                                                           Throwable th) {
+    return ResponseEntity
+        .status(HttpStatus.PRECONDITION_FAILED)
+        .body(new Status(false, Optional.of(th.getMessage())));
+  }
+}
+```
+
+The documentation also gets updates. This is OK, but if I'm honest having to use
+`HttpStatus.PRECONDITION_FAILED` in two places is a bit bad (not very DRY).
+
+#### The main Controllers
+I've also added some Open API documentation to the controller services:
+```
+...
+  /**
+   * Status checks.
+   */
+  @Operation(summary = "Check the status of the 'user identifier' supplied")
+  @GetMapping("/status/{userIdentifier}")
+  public ResponseEntity<Status> checkInputValueStatus(
+      @Parameter(description = "The 'user identifier' to be checked")
+      @PathVariable("userIdentifier") @Size(min = 2, max = 30) String userIdentifier) {
+
+    logger.info("Checking status of {}", userIdentifier);
+    return response.apply(HttpStatus.OK, userIdentifierValidator.apply(userIdentifier));
+  }
+...
+```
+
+And:
+```
+...
+  /**
+   * Email address structure validity checks.
+   */
+  @Operation(summary = "Check the validity of the 'email address' supplied")
+  @GetMapping("/email/{emailAddress}")
+  public ResponseEntity<Status> checkEmailAddress(
+      @Parameter(description = "The 'email address' to be checked")
+      @PathVariable("emailAddress") @NotBlank String emailAddress) {
+
+    logger.info("Checking email validity of {}", emailAddress);
+    return response.apply(HttpStatus.OK, emailValidator.apply(emailAddress));
+  }
+```
+
+#### A new Configuration
+
+```
+Configuration
+public class OpenApiConfiguration {
+
+  /**
+   * Create an OpenAPI bean with all the relevant details in.
+   * This can then be displayed in the generated documentation.
+   */
+  @Bean
+  public OpenAPI customOpenApi(@Autowired BuildProperties buildProperties,
+                               @Value("${apiTitle}") String apiTitle,
+                               @Value("${apiDescription}") String apiDescription,
+                               @Value("${apiContactName}") String apiContactName,
+                               @Value("${apiContactEmail}") String apiContactEmail) {
+    return new OpenAPI()
+        .components(new Components())
+        .info(new Info()
+            .title(apiTitle).description(apiDescription).version(buildProperties.getVersion())
+            .contact(new Contact().name(apiContactName).email(apiContactEmail)));
+  }
+}
+```
+
+I had to update `build.gradle` to get the `BuildProperties` injected.
+```
+springBoot {
+    buildInfo()
+}
+```
+
+Also modify `application.properties` with the following:
+```
+apiTitle=Validations API
+apiDescription=API for basic validations
+apiContactName=Steve Limb
+apiContactEmail=stephenjohnlimb@gmail.com
+```
+
+So that those too could be injected as `@Values`.
+
+#### A few other minor changes
+
+I wanted a specific error page to be used for URL's that this application
+is **not** serving. So I added a bespoke [error.html](src/main/resources/templates/error.html) and
+updated `build.gradle` to include `spring-boot-starter-thymeleaf`:
+```
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    implementation 'org.springdoc:springdoc-openapi-ui:1.6.12'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+```
+
+Then altered `application.properties` with `server.error.whitelabel.enabled=false`.
+
+I then added an error controller:
+```
+/**
+ * Designed to provide a little more information to the caller in the event of an error.
+ */
+@Controller
+public class ServiceErrorController implements ErrorController {
+
+  private final Logger logger = LoggerFactory.getLogger(ServiceErrorController.class);
+
+  /**
+   * Handles any errors and maps through to an error page.
+   */
+  @RequestMapping("/error")
+  public String handleError(HttpServletRequest request) {
+    Object status = request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE);
+    logger.error("WebService Error {}", status);
+    return "error";
+  }
+}
+```
+
+## Summary
+That is it for adding OpenAPI/Swagger documentation. So took me about a morning to do,
+with a few breaks, a bit of trial and error and writing this page.
