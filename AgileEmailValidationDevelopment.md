@@ -7,7 +7,7 @@ requirement is as follows:
 If it is not acceptable we also want some reasoning as to why. We will only submit user identifier values of
 length greater than 1 and less than 31 characters.
 
->A User Identifier is deemed acceptable if it does not have the letter `X` in it (arbitrary) and must not
+>A User Identifier is deemed acceptable if it does not have the letter `X` in it (arbitrary), it must not
 contain any punctuation characters, and is not blank (i.e just spaces).
 
 >The application must be deployable into a Kubernetes cluster.
@@ -21,7 +21,7 @@ contain any punctuation characters, and is not blank (i.e just spaces).
 
 Note that the definition above is just one I picked, real email addresses can vary from this (but this will do for this example).
 
-So this should be too hard to do as a couple of stories. Then may be one final story to hook it all up.
+So this shouldn't be too hard to do as a couple of stories. Then may be one final story to hook it all up.
 
 #### `Story 1`
 
@@ -255,6 +255,10 @@ public class EmailValidation implements Predicate<String> {
 }
 ```
 
+Notice, I've separated the definition of the regex, the definition of the pattern and
+the final use of the pattern into three separate areas. While a little more verbose, I find
+this approach much clearer when I come to revisit code.
+
 I'll just update `ValidatorConfiguration` with this implementation:
 ```
 ...
@@ -297,7 +301,7 @@ public class EmailValidationController {
 
 ## Summary (sort of)
 
-Give it a quick test - end-2-end:
+Give it a quick end-2-end test:
 ```
 curl http://localhost:8080/email/StephenJohnLimb@gmail.com
 # The output
@@ -348,7 +352,7 @@ The alternatives would be to:
 
 This would remove the "Qualification" Springy stuff - which I find a bit busy on my eye.
 
-At I have a bit of time, let's refactor again. All the tests are passing and the whole thing runs.
+As I have a bit of time, let's refactor again. All the tests are passing and the whole thing runs.
 But I would like to see if I can avoid the bean qualifiers, a bit anal I know. But let's see what's involved.
 
 ### Refactoring away the Bean Qualifiers
@@ -502,6 +506,6 @@ more composition is better and enables you to move stuff around more.
 
 So all of this (including writing this waffle) took a couple of hours. That's pretty Agile.
 
-The smaller, more single function, isolated and composed your classes and functions are the more
+The smaller, more single function, isolated and composed your classes and functions are; the more
 you can just move them around. Also, if you focus on test driven development - you can focus on the
 isolation and get teams to do parallel development and then plug it all together as it's done.

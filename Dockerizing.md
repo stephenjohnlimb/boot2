@@ -48,12 +48,12 @@ I can then check that got pushed to my local docker repository with `curl http:/
 ### Helm charts
 Now I need to create a helm chart to deploy this application, because I plan to use Kubernetes.
 
-So use the `terminal` window in IntelliJ and in your `boot2` directory use `mkdir src/main/helm;  helm create boot2`.
+So use the `terminal` window in IntelliJ and in your `boot2` directory issue the following command: `mkdir src/main/helm;  helm create boot2`.
 
 Now you can edit [Chart.yaml](src/main/helm/boot2/Chart.yaml) (mainly just the version numbers you want to use),
 and [values.yaml](src/main/helm/boot2/values.yaml).
 
-But make sure that the version number in your `build.gradle` and the `appVersion` you reference in you `Chart.yaml` match up.
+But make sure that the version number in your `build.gradle` and the `appVersion` you reference in your `Chart.yaml` match up.
 
 The `values.yaml` is a bit more involved:
 ```
@@ -77,7 +77,7 @@ I also want to use port 80 and route that through to port 8080 on my SpringBoot 
 `metallb` configured I'll expose a point of ingress from my local MacBook into the Kubernetes cluster.
 I'll show how the IP address is set and fixed later on.
 
-But we also need to alter the templates and add in `actuator` so that Kubernetes can check the pod is live and also ready.
+But we also need to alter the templates and add in `actuator` so that Kubernetes can check the container is alive and also ready.
 This is really important and Kubernetes needs to know if the app has started OK and is able to service requests.
 
 I've altered [build.gradle](build.gradle) and added the `actuator`:

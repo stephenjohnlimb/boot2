@@ -7,7 +7,7 @@ But I can't tell you how much the development will cost, or when it will be fini
 But I can tell you, you get value very early on; and you can say 'stop' when you feel
 you have enough functionality.
 
-Importantly quality is not sacrificed. Also, things that can be done in parallel by different tram members
+Importantly quality is not sacrificed. Also, things that can be done in parallel by different team members
 can be progressed.
 
 ### So lets outline the broad requirement
@@ -16,13 +16,13 @@ can be progressed.
 If it is not acceptable we also want some reasoning as to why. We will only submit user identifier values of
 length greater than 1 and less than 31 characters.
 
->A User Identifier is deemed acceptable if it does not have the letter `X` in it (arbitrary) and must not
+>A User Identifier is deemed acceptable if it does not have the letter `X` in it (arbitrary), it must not
 contain any punctuation characters, and is not blank (i.e just spaces).
 
 >The application must be deployable into a Kubernetes cluster.
 
 Note, I've not added any requirements around performance, logging formats or outputs, nor metric/throughput monitoring.
-These things can be added later; as stories There's little doubt in production they will be needed.
+These things can be added later. There's little doubt in production they will be needed.
 But we don't need to think about that yet.
 
 Don't slip into 'waterfall mode'. This requirement (while minimal) is sufficient to get going with. Now take
@@ -135,9 +135,9 @@ public class BasicProcessController {
 
 So that should do it; right? No business logic yet, but in terms of minimal functionality and those preconditions - we're done.
 
-Try the tests again, two still fail! This is because the validation using `@Size` causes a `javax.validation.ConstraintViolationException`.
+Try the tests again, two still fail! This is because the validation is using `@Size`, this causes a `javax.validation.ConstraintViolationException`.
 
-What we really want is the HTTP code for PRECONDITION_FAILURE here.
+What we really want is the HTTP code for PRECONDITION_FAILURE.
 So now we need to work with the Spring framework to add in some `Aspect Programming`. Spring enables us to catch the exception via
 `AOP` and modify the response.
 
@@ -180,7 +180,7 @@ This meets the needs for the first paragraph.
 We can work on the next story, that story is the business logic. If we had a team that could be done concurrently.
 
 Just to recap the business logic is:
->A User Identifier is deemed acceptable if it does not have the letter `X` in it (arbitrary) and must not
+>A User Identifier is deemed acceptable if it does not have the letter `X` in it (arbitrary), it must not
 contain any punctuation characters, and is not blank (i.e just spaces).
 
 #### `Story 2` - the 'business validation'
@@ -488,7 +488,7 @@ public final class UserIdentifierValidator {
 You can argue the refactoring as gone a bit too far (or not far enough!), but you can see the progression in agile development.
 At each stage you have something runnable, this activity (including writing this blurb) took a few hours.
 
-I have separated out all the logic concerns here, the `UserIdentifierValidator` just runs a `Predicate` and delegates
+I have separated out all the logical concerns here, the `UserIdentifierValidator` just runs a `Predicate` and delegates
 the mapping of the result to one of two `Suppliers`
 (even these could have been passed in - if we really wanted to separate those concerns even more).
 

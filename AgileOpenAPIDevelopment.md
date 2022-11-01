@@ -7,12 +7,12 @@ they've stated they want to pay for it. So this functionality must have some val
 and do it. If we'd have developed it before - maybe that time and effort would have been wasted.
 
 After all; the requirement started out as a single URL context of `/status/{userIdentifier}`, hardly
-needs any documentation. But now we've added the `/email/{emailAddress}` URL context maybe some
+needs any documentation. But now we've added the `/email/{emailAddress}` URL context; maybe some
 documentation is a good idea.
 
 ### Adding in Swagger 3 OpenAPI support
 
-Now the first question you now need to answer is are you a 'bottom up' or a 'top down' developer.
+Now the first question you need to answer is; are you a 'bottom up' or a 'top down' developer.
 
 As I'm a 'code monkey' - I'm a bottom up developer. I'll define all my documentation via code
 and have it generated as documentation using `org.springdoc:springdoc-openapi-ui`.
@@ -231,10 +231,10 @@ components:
 
 The using a browser, you can go to `http://192.168.64.95/api-ui.html` and interact with the side.
 
-So we're good to 'check-in' our code and next we can refine the documentation - if the team things this is
+So we're good to 'check-in' our code and next we can refine the documentation - if the team thinks this is
 worthwhile.
 
-How long this take upto this point? About an hour - including making tea and writing these pages.
+How long this take up to this point? About an hour - including making tea and writing these pages.
 
 ### Improving the documentation
 If you recall in `BasicControllerAdvice` we handled the `ConstraintViolationException` which is
@@ -301,6 +301,9 @@ And:
   }
 ```
 
+If I'm honest - I find this all a bit 'busy' - there's more '@' than I'd like. But as this
+is the entry point into the application service and does not contain any other functionality;
+I suppose this is OK.
 #### A new Configuration
 
 ```
@@ -326,7 +329,14 @@ public class OpenApiConfiguration {
 }
 ```
 
-I had to update `build.gradle` to get the `BuildProperties` injected.
+I had to update `build.gradle` to get the `BuildProperties` injected. I wanted this; so I
+could use the same version from the `build.gradle`. Now you could argue that the version
+of the API should be different from the version of the application built.
+
+But as we already have a helm chart version, and application version; I did not really
+want to introduce an API version. But if you were developing a real API - you'd probably
+have to.
+
 ```
 springBoot {
     buildInfo()
@@ -341,7 +351,7 @@ apiContactName=Steve Limb
 apiContactEmail=stephenjohnlimb@gmail.com
 ```
 
-So that those too could be injected as `@Values`.
+Those properties are now injected as `@Values`.
 
 #### A few other minor changes
 
@@ -384,6 +394,23 @@ public class ServiceErrorController implements ErrorController {
 }
 ```
 
+And also the [error.html](src/main/resources/templates/error.html) page:
+```
+<!DOCTYPE html>
+<html>
+<body>
+<h1>Unable to Service Request</h1>
+<h2>Please check following URLS</h2>
+<p>Check you have made the correct request.</p>
+<a href="/api-docs">Programmatic API Documentation</a>
+<br/>
+<a href="/api-ui.html">Human API Documentation</a>
+</body>
+</html>
+```
+
 ## Summary
 That is it for adding OpenAPI/Swagger documentation. So took me about a morning to do,
 with a few breaks, a bit of trial and error and writing this page.
+
+But I think this amount of documentation for a REST API is about right.
