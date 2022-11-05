@@ -1,12 +1,16 @@
 package com.example.boot2.domain;
 
 import java.util.function.Function;
-import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 
 /**
  * User Identifier Validator that delegates to a Value Validator.
  */
-public final class UserIdentifierValidator implements Function<String, Supplier<Status>> {
+public class UserIdentifierValidator implements Function<String, Status> {
+
+  private final Logger logger = LoggerFactory.getLogger(UserIdentifierValidator.class);
 
   private final ValueValidator delegateValidator;
 
@@ -15,7 +19,9 @@ public final class UserIdentifierValidator implements Function<String, Supplier<
   }
 
   @Override
-  public Supplier<Status> apply(String userIdentifierValue) {
-    return delegateValidator.validate(userIdentifierValue);
+  @Cacheable(value = "status", key = "#userIdentifier")
+  public Status apply(String userIdentifier) {
+    logger.info("Checking status of {}", userIdentifier);
+    return delegateValidator.validate(userIdentifier).get();
   }
 }

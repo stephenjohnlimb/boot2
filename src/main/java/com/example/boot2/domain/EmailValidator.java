@@ -1,13 +1,16 @@
 package com.example.boot2.domain;
 
 import java.util.function.Function;
-import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 
 /**
  * Email Validator that delegates to a Value Validator.
  * Just provides strong typing and wrapping as a function.
  */
-public final class EmailValidator implements Function<String, Supplier<Status>> {
+public class EmailValidator implements Function<String, Status> {
+  private final Logger logger = LoggerFactory.getLogger(EmailValidator.class);
 
   private final ValueValidator delegateValidator;
 
@@ -16,7 +19,9 @@ public final class EmailValidator implements Function<String, Supplier<Status>> 
   }
 
   @Override
-  public Supplier<Status> apply(String emailValue) {
-    return delegateValidator.validate(emailValue);
+  @Cacheable(value = "email", key = "#emailAddress")
+  public Status apply(String emailAddress) {
+    logger.info("Checking email validity of {}", emailAddress);
+    return delegateValidator.validate(emailAddress).get();
   }
 }

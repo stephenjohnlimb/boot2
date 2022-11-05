@@ -71,9 +71,21 @@ See [Adding Email Validation](AgileEmailValidationDevelopment.md) for the change
 This requirement is to ensure the microservices have some form of external documentation (swagger/OpenAPI).
 See [Adding Swagger/OPEN API Documentation](AgileOpenAPIDevelopment.md) for the changes need to be made to meet this new requirement.
 
+### Very popular service
+Our service has now become very popular, but by some very 'chatty' applications. They
+keep calling our Microservice with the same values. Now once we've checked these values are either OK
+or not OK - that's it (well while our current version of the service is running it is).
+
+So we really want to 'memoize' the results. But only while our service is running.
+
+Let's have a quick look at what's involved in caching results, what the pros-and-cons are.
+
+See [Adding Caching](PragmaticCaching.md) for a discussion and some additional code.
+
 ## Summary
 Hopefully from this little project, you can see that actually adopting an 'Agile' and incremental approach
-to development can actually work.
+to development can actually work. Also adopting a more 'Functional Programming' approach and
+not relying on 'Spring' for everything also can make things much easier.
 
 As I said at the top of this page, I can't tell you when it will all be finished. Because in reality
 software is never really finished, there's always more that can be added/updated/improved.

@@ -1,16 +1,11 @@
 package com.example.boot2;
 
-import com.example.boot2.domain.Delay;
 import com.example.boot2.domain.Status;
 import com.example.boot2.domain.UserIdentifierValidator;
+import com.example.boot2.util.Delay;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import java.util.function.BiFunction;
-import java.util.function.Supplier;
 import javax.validation.constraints.Size;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,17 +22,11 @@ import org.springframework.web.bind.annotation.RestController;
 @Validated
 public class BasicProcessController {
 
-  private final Logger logger = LoggerFactory.getLogger(BasicProcessController.class);
-
-  private final UserIdentifierValidator userIdentifierValidator;
-
-  private final BiFunction<HttpStatus, Supplier<Status>, ResponseEntity<Status>> response =
-      (statusCode, supplier) -> ResponseEntity.status(statusCode).body(supplier.get());
-
-  private final Delay delay = new Delay();
+  private final RequestProcessor requestProcessor;
 
   public BasicProcessController(UserIdentifierValidator userIdentifierValidator) {
-    this.userIdentifierValidator = userIdentifierValidator;
+    requestProcessor =
+        new RequestProcessor(new Delay<>(10000000, userIdentifierValidator));
   }
 
   /**
@@ -49,7 +38,6 @@ public class BasicProcessController {
       @Parameter(description = "The 'user identifier' to be checked")
       @PathVariable("userIdentifier") @Size(min = 2, max = 30) String userIdentifier) {
 
-    logger.info("Checking status of {}", userIdentifier);
-    return response.apply(HttpStatus.OK, delay.apply(userIdentifier, userIdentifierValidator));
+    return requestProcessor.apply(userIdentifier);
   }
 }

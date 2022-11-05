@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullSource;
@@ -15,10 +14,10 @@ import org.junit.jupiter.params.provider.ValueSource;
 @SuppressWarnings("java:S2699")
 class UserIdentifierValidatorTest {
 
-  private final UserIdentifierValidator underTest = new ValidatorConfiguration().productionUserIdentifierValidator();
+  private final UserIdentifierValidator underTest =
+      new ValidatorConfiguration().productionUserIdentifierValidator();
 
-  private final Consumer<Supplier<Status>> assertFailsBusinessLogic = supplier -> {
-    var result = supplier.get();
+  private final Consumer<Status> assertFailsBusinessLogic = result -> {
     assertFalse(result.acceptable());
     assertTrue(result.reasonUnacceptable().isPresent());
     assertEquals("Fails Business Logic Check", result.reasonUnacceptable().get());
@@ -27,7 +26,7 @@ class UserIdentifierValidatorTest {
   @ParameterizedTest
   @CsvSource({"Steve", "StephenLimb", "Stephen John Limb"})
   void testAcceptableContent(String toBeValidated) {
-    var result = underTest.apply(toBeValidated).get();
+    var result = underTest.apply(toBeValidated);
     assertTrue(result.acceptable());
     assertTrue(result.reasonUnacceptable().isEmpty());
   }
