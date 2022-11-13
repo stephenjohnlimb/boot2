@@ -355,6 +355,47 @@ But just so anyone can pick this up and try it, it's fine. But you've never do t
 in full development. Neither would you store use names/passwords. These must be injected
 just prior to running up the application - via some secrets store.
 
+### A Test Java Client
+
+Just so I can see if the mutual tls will work from a java client - I've added:
+
+```
+package com.example.boot2.client;
+
+import java.net.URL;
+
+/**
+ * A main manual class to check SSL access works OK.
+ */
+public class CheckSSL {
+
+  public static void main(String[] args) throws Exception {
+    try
+    {
+      new URL( args[0] ).openConnection().getInputStream();
+      System.out.println( "Steve this Succeeded." );
+    }
+    catch( javax.net.ssl.SSLHandshakeException e )
+    {
+      System.out.println( "SSL exception." );
+    }
+  }
+}
+```
+
+You can call this, with the values of the key stores. Obviously, you would need to
+provide this root certificate and the client certificate/keys in a secure way to the client.
+
+Then they can incorporate those details in via 'operations procedures'.
+
+```
+java -Djavax.net.ssl.trustStore=/Users/stevelimb/IdeaProjects/boot2/src/main/resources/truststore.p12 \
+-Djavax.net.ssl.trustStorePassword=stephen \
+-Djavax.net.ssl.keyStore=/Users/stevelimb/IdeaProjects/boot2/src/main/resources/keystore.p12 \
+-Djavax.net.ssl.keyStorePassword=stephen \
+com.example.boot2.client.CheckSSL https://localhost:8080/status/Steve 
+```
+
 
 
 
